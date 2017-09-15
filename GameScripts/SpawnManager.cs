@@ -417,7 +417,7 @@ namespace GameScripts
 					{
 						temp.Add(obj);
 						Destroy(obj);
-					}			
+					}				
 				}
 				temp.ForEach(e => currentObjects.Remove(e));
 			}	

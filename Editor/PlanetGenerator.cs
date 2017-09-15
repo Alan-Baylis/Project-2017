@@ -337,7 +337,7 @@ public class PlanetGenerator {
             triangles.RemoveAll(e => buildingTriangles.Contains(e));
         }
         var vertices = mesh.vertices;
-        var charScale = obj.transform.lossyScale.x * 0.0007f;
+        var charScale = obj.transform.lossyScale.x * 0.0015f;
         for (int i = 0; i < triangles.Count / 3; i++)
         {
             var temp = i;

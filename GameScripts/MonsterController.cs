@@ -1,5 +1,5 @@
 ﻿using System.Collections;
-using System.Collections.Generic;
+using GameScripts;
 using UnityEngine;
 
 public class MonsterController : MonoBehaviour
@@ -11,7 +11,9 @@ public class MonsterController : MonoBehaviour
 	private Mecanim_Control_melee playerTarget;
 	private float speed = 7;
 	private GameObject planet;
-	private Vector3 gravityUp;
+	//private Vector3 gravityUp;
+	private ProgressBar healthbar;
+	private GameObject healthObj;
 	private bool isDead = false;
 	private bool isDamaged = false;
 	
@@ -24,18 +26,25 @@ public class MonsterController : MonoBehaviour
 		anim["block_hit"].wrapMode = WrapMode.Once;
 		player = GameObject.Find("Player");
 		playerTarget = player.GetComponent<Mecanim_Control_melee>();
-		gravityUp = (transform.position - planet.transform.position).normalized;
+		healthObj = transform.GetChild(5).gameObject;
+		healthObj.GetComponent<Canvas>().worldCamera = Camera.main;
+		healthObj.GetComponent<RectTransform>().localScale = new Vector3(0.01f, 0.0015f, 0f);
+		healthObj.GetComponent<RectTransform>().position = new Vector3(0, 4f, 0.1f);
+		healthbar = healthObj.transform.GetChild(0).GetComponent<ProgressBar>();
+		//gravityUp = (transform.position - planet.transform.position).normalized;
 	}
 
 	private void Start()
 	{
+		healthbar.Value = health/100f;
+		healthObj.SetActive(false);
 		StartCoroutine(ManageEnemy());
 	}
 
 	private IEnumerator ManageEnemy()
 	{
 		while(Application.isPlaying && !isDead)
-		{
+		{ 			
 			Animate();
 			yield return null;
 		}
@@ -44,7 +53,8 @@ public class MonsterController : MonoBehaviour
 	private void Combat()
 	{
 		if (Aggro())
-		{			
+		{	
+			healthObj.SetActive(true);
 			if (playerTarget.GetTarget() != this)
 			{
 				playerTarget.SetTarget(this);
@@ -60,6 +70,10 @@ public class MonsterController : MonoBehaviour
 		} 		
 		else
 		{
+			if (healthObj.activeSelf)
+			{
+				healthObj.SetActive(false);
+			}
 			Idle();
 		}
 	}
@@ -93,6 +107,7 @@ public class MonsterController : MonoBehaviour
 		{
 			isDamaged = true;	
 			health -= damage;
+			healthbar.Value = health/100f;
 		}
 	}
 
@@ -108,7 +123,7 @@ public class MonsterController : MonoBehaviour
 		{
 			float step = speed * Time.deltaTime;
 			transform.position = Vector3.MoveTowards(transform.position, target.position, step);
-			transform.LookAt(target, gravityUp);
+			transform.LookAt(target, transform.up);
 			anim.Play("run");
 		}
 	}
@@ -121,14 +136,14 @@ public class MonsterController : MonoBehaviour
 	private void Die()
 	{
 		anim.Play("death");
+		healthObj.SetActive(false);
 		isDead = true;
 		Invoke("DestroyObject", 10);
 	}
 
 	private void DestroyObject()
 	{
-		StopCoroutine(ManageEnemy());
-		Destroy(gameObject);		
+		StopCoroutine(ManageEnemy());		
 	}
 
 	private void Animate()
