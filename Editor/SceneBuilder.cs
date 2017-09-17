@@ -52,7 +52,7 @@ public class SceneBuilder : EditorWindow
 		{
 			var planet = Instantiate(planets[i]);
 			planet.GetComponent<Atmosphere>().m_sun = sun;			
-			planet.transform.position = new Vector3(0, (i + 1) * 3000, 0);			
+			planet.transform.position = new Vector3(0, 0, (i + 1) * 3000);			
 			if (i == randomPlanet)
 			{
 				var sm = planet.transform.GetChild(3).gameObject;

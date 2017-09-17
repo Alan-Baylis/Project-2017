@@ -7,7 +7,7 @@ namespace GameScripts
         public float speed = 3f;
 
         void FixedUpdate () {
-            transform.Rotate(Vector3.right * Time.deltaTime * 0.4f * speed); //Rotation around its axis by axis constant times speed
+            transform.Rotate(Vector3.up * Time.deltaTime * 0.4f * speed); //Rotation around its axis by axis constant times speed
         }
     }
 }
