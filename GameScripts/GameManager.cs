@@ -25,7 +25,6 @@ namespace GameScripts
 			else
 			{
 				ManageGUI();
-				Debug.Log("Active Scene: " + activeScene.buildIndex);
 			}
 		}
 

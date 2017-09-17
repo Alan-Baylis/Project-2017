@@ -89,12 +89,9 @@ public class PlanetGenerator {
             
             //Calculate the transform of each plants patch to be spawned
             CalculateObjectsData(workingObject, seed, false, false, false);
-            
-            //Calculate the transform of the player to be spawn at             
-            CalculateCharacterSpawnPoint(workingObject, seed, true);
         
             //Calculate the transform of enemies to be spawned
-            CalculateCharacterSpawnPoint(workingObject, seed, false);
+            CalculateEnemiesSpawnPoints(workingObject, seed);
             workingObject.SetActive(false);
             //Saves the planet with the attached water, clouds, atmosphere and player objects as a prefab
             SavePrefab(seed, workingObject.gameObject, tempMats);                                  
@@ -319,80 +316,52 @@ public class PlanetGenerator {
         spawn.SetActive(false);
     }
 
-    private void CalculateCharacterSpawnPoint(GameObject obj, int seedNum, bool isPlayer)
+    private void CalculateEnemiesSpawnPoints(GameObject obj, int seedNum)
     {
         List<TransformData> enemies = new List<TransformData>(); 
-        var min = obj.transform.lossyScale.x * 0.975f;
         var mesh = obj.GetComponent<MeshFilter>().sharedMesh;
-        List<int> triangles;
-        if (isPlayer)
-        {
-            triangles = buildingTriangles;
-        }
-        else
-        {
-            triangles = mesh.GetTriangles(1).ToList();
-            triangles.RemoveRange(0, triangles.Count / 3); // The whole subset used for forest
-            triangles.RemoveAll(e => treeTriangles.Contains(e)); //and each individual random tree
-            triangles.RemoveAll(e => buildingTriangles.Contains(e));
-        }
+        List<int> triangles = mesh.GetTriangles(1).ToList();
+        triangles.RemoveRange(0, triangles.Count / 3); // The whole subset used for forest
+        triangles.RemoveAll(e => treeTriangles.Contains(e)); //and each individual random tree
+        triangles.RemoveAll(e => buildingTriangles.Contains(e));
+   
         var vertices = mesh.vertices;
-        var charScale = obj.transform.lossyScale.x * 0.0015f;
+        var charScale = obj.transform.lossyScale.x * 0.001f;
         for (int i = 0; i < triangles.Count / 3; i++)
         {
-            var temp = i;
-            var index1 = triangles[temp * 3];
-            var index2 = triangles[temp * 3 + 1];
-            var index3 = triangles[temp * 3 + 2];
-                
-            var p1 = obj.transform.TransformPoint(vertices[index1]);
-            var p2 = obj.transform.TransformPoint(vertices[index2]);
-            var p3 = obj.transform.TransformPoint(vertices[index3]);
-            //Get the position of each triangle's mid point in world space coordinates
-            var centre = (p1 + p2 + p3) / 3;                        
-            //Calculate the normal vector of the mid point                
-            Vector3 v1 = centre - p1;
-            Vector3 v2 = centre - p2;                
-            var normal = Vector3.Cross(v1, v2);
-            //Calculate a vector poiting from origin to the normal vector
-            var origin = (centre - obj.transform.position).normalized;
-            var angle = Vector3.Angle(origin, normal.normalized);            
-            //Compare the direction of the triangle normal to that of planet centre outward direction
-            //in order to avoid steep terrain
-            if (angle <= 5)
+            if (i % 5 == 0)
             {
-                var rot = Quaternion.FromToRotation(Vector3.up, normal.normalized);
-                if (isPlayer)
+                var temp = i;
+                var index1 = triangles[temp * 3];
+                var index2 = triangles[temp * 3 + 1];
+                var index3 = triangles[temp * 3 + 2];
+
+                var p1 = obj.transform.TransformPoint(vertices[index1]);
+                var p2 = obj.transform.TransformPoint(vertices[index2]);
+                var p3 = obj.transform.TransformPoint(vertices[index3]);
+                //Get the position of each triangle's mid point in world space coordinates
+                var centre = (p1 + p2 + p3) / 3;
+                //Calculate the normal vector of the mid point                
+                Vector3 v1 = centre - p1;
+                Vector3 v2 = centre - p2;
+                var normal = Vector3.Cross(v1, v2);
+                //Calculate a vector poiting from origin to the normal vector
+                var origin = (centre - obj.transform.position).normalized;
+                var angle = Vector3.Angle(origin, normal.normalized);
+                //Compare the direction of the triangle normal to that of planet centre outward direction
+                //in order to avoid steep terrain
+                if (angle <= 5)
                 {
-                    charScale = obj.transform.lossyScale.x * 0.0005f;
-                    var cRadius = Mathf.Pow(centre.x - obj.transform.position.x, 2) +
-                                  Mathf.Pow(centre.y - obj.transform.position.y, 2) +
-                                  Mathf.Pow(centre.z - obj.transform.position.z, 2);
-                    if (cRadius > min * min)
-                    {
-                        TransformData t = NewTransformData(centre, rot, Vector3.one * charScale);
-                        BinaryFormatter bf = new BinaryFormatter();
-                        FileStream file = File.Create(Application.streamingAssetsPath + "/Planets/Planet_" + seedNum +
-                                                      "/PlanetData/PlayerData.dat");
-                        bf.Serialize(file, t);
-                        file.Close();
-                        break;
-                    }
-                }
-                if (i % 5 == 0)
-                {
+                    var rot = Quaternion.FromToRotation(Vector3.up, normal.normalized);
                     enemies.Add(NewTransformData(centre, rot, Vector3.one * charScale));
                 }
-            }        
+            }
         }
-        if (!isPlayer)
-        {
-            BinaryFormatter bf2 = new BinaryFormatter();
-            FileStream file2 = File.Create(Application.streamingAssetsPath + "/Planets/Planet_" + seedNum +
-                                           "/PlanetData/EnemiesData.dat");
-            bf2.Serialize(file2, enemies);
-            file2.Close();
-        }
+        BinaryFormatter bf2 = new BinaryFormatter();
+        FileStream file2 = File.Create(Application.streamingAssetsPath + "/Planets/Planet_" + seedNum +
+                                       "/PlanetData/EnemiesData.dat");
+        bf2.Serialize(file2, enemies);
+        file2.Close();
     }
 
     private int Distribution(int i, HashSet<int> range, bool isBuilding)

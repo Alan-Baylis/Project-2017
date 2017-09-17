@@ -90,7 +90,7 @@ public class MonsterController : MonoBehaviour
 
 	private bool isClose()
 	{
-		return Vector3.Distance(transform.position, player.transform.position) < 5;
+		return Vector3.Distance(transform.position, player.transform.position) < 3;
 	}
 
 	private void Attack()

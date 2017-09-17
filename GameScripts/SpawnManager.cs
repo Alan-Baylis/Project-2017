@@ -45,7 +45,7 @@ namespace GameScripts
 		private List<TransformData> buildingTransforms;
 		private List<TransformData> enemiesTransforms;
 		private List<TransformData> rocksTransforms;
-		private TransformData? playerTransform;
+		private ObjectTransform playerTransform;
 		private GameObject myPlayer;
 		private float min;
 		private float spawnDistance;
@@ -64,10 +64,6 @@ namespace GameScripts
 			FileStream file = File.Open(Application.streamingAssetsPath + "/Planets/Planet_" + seed + "/PlanetData/TreesData.dat", FileMode.Open);
 			treeTransforms = bf.Deserialize(file) as List<TransformData>;
 			file.Close();
-				
-			FileStream file2 = File.Open(Application.streamingAssetsPath + "/Planets/Planet_" + seed + "/PlanetData/PlayerData.dat", FileMode.Open);
-			playerTransform = bf.Deserialize(file2) as TransformData?;
-			file2.Close();
 		
 			FileStream file3 = File.Open(Application.streamingAssetsPath + "/Planets/Planet_" + seed + "/PlanetData/PlantsData.dat", FileMode.Open);
 			grassTransforms = bf.Deserialize(file3) as List<TransformData>;
@@ -169,9 +165,24 @@ namespace GameScripts
 		{	
 			var playerClone = Instantiate(player);		
 			playerClone.name = "Player";
-			var gravity = playerClone.GetComponent<PlayerGravity>();	
-			if (playerTransform != null) AssignTransform(playerClone, transform.gameObject, GetTransform(playerTransform.Value));
-			playerClone.transform.position += transform.up * 1.5f;
+			var objScale = transform.parent.lossyScale.x * 0.0005f;;			
+			foreach (var trans in buildingTransforms)
+			{
+				var objTransform = GetTransform(trans);
+				var radius = Mathf.Pow(objTransform.position.x - transform.parent.position.x, 2) +
+				             Mathf.Pow(objTransform.position.y - transform.parent.position.y, 2) +
+				             Mathf.Pow(objTransform.position.z - transform.parent.position.z, 2);
+
+				if (radius > min * min)
+				{
+					playerTransform = objTransform;
+					AssignTransform(playerClone, transform.gameObject, playerTransform);					
+					break;
+				}
+			}
+			var gravityUp = (playerClone.transform.position - transform.position).normalized;
+			playerClone.transform.position += gravityUp * 2f;
+			playerClone.transform.localScale = Vector3.one * objScale;
 			myPlayer = GameObject.Find("Player");	
 		}
 
@@ -180,15 +191,7 @@ namespace GameScripts
 			foreach (var trans in treeTransforms)
 			{
 				var objTransform = GetTransform(trans);
-			
-				/*var triCentre = objTransform.position;
-			var originV = (triCentre - transform.position).normalized;
-			var originRot = Quaternion.FromToRotation(Vector3.up, originV);
-			var normalRot = objTransform.rotation;									
-			var angle = Quaternion.Angle(originRot, normalRot);	
-			
-			if (angle <= 10)
-			{*/					
+							
 				var radius = Mathf.Pow(objTransform.position.x - transform.parent.position.x, 2) +
 				             Mathf.Pow(objTransform.position.y - transform.parent.position.y, 2) +
 				             Mathf.Pow(objTransform.position.z - transform.parent.position.z, 2);
@@ -299,10 +302,15 @@ namespace GameScripts
 				{
 					int[] indexes = {0, 1, 2, 3, 4};
 					var randomBuilding = RandomProbabilityNumber(0.1f, 0.8f, indexes, true);
+					var excludedHouses = RandomProbabilityNumber(0.1f, 0, indexes, true);
 					GameObject building;
-					if (playerTransform != null && GetTransform(playerTransform.Value).position.Equals(objTransform.position))
+					if (playerTransform.position == objTransform.position)
 					{
 						building = Instantiate(buildingList[1]);
+					}
+					else if (buildingTransforms.Any(e => CheckDistanceInRange(e, objTransform, 60)))
+					{
+						building = Instantiate(buildingList[excludedHouses]);
 					}
 					else
 					{
@@ -311,6 +319,14 @@ namespace GameScripts
 					AssignTransform(building, buildings, objTransform);					
 				}			
 			}
+		}
+
+		private bool CheckDistanceInRange(TransformData n, ObjectTransform o, int max)
+		{
+			var v1 = GetTransform(n).position;
+			var v2 = o.position;
+			var value = Vector3.Distance(v1, v2);
+			return v1 != v2 && value < max;
 		}
 
 		private void DebugEnemies()
@@ -333,7 +349,6 @@ namespace GameScripts
 
 		private void DebugRocks()
 		{
-			Debug.Log("rocks: " + rocksList.Count);
 			foreach (var trans in rocksTransforms)
 			{			
 				var objTransform = GetTransform(trans);
@@ -353,21 +368,24 @@ namespace GameScripts
 		{
 			if (radius > min * min)
 			{
-				//if(currentObjects.Any(e => Vector3.Distance(objTransform.position, GetTransform(e.Value).position) > 2)) {
-					int[] indexes = {0, 1, 2, 3, 4};
-					var randomBuilding = RandomProbabilityNumber(0.1f, 0.8f, indexes, true);
-					GameObject building;
-					if (playerTransform != null && GetTransform(playerTransform.Value).position == objTransform.position)
-					{
-						building = Instantiate(buildingList[1]);
-					}
-					else
-					{
-						building = Instantiate(buildingList[randomBuilding]);
-					}
-					AssignTransform(building, buildings, objTransform);
-					currentObjects[building] = trans;
-				//}
+				int[] indexes = {0, 1, 2, 3, 4};
+				var randomBuilding = RandomProbabilityNumber(0.1f, 0.8f, indexes, true);
+				var excludedHouses = RandomProbabilityNumber(0.1f, 0, indexes, true);
+				GameObject building;
+				if (playerTransform.position == objTransform.position)
+				{
+					building = Instantiate(buildingList[1]);
+				}
+				else if (buildingTransforms.Any(e => CheckDistanceInRange(e, objTransform, 60)))
+				{
+					building = Instantiate(buildingList[excludedHouses]);
+				}
+				else
+				{
+					building = Instantiate(buildingList[randomBuilding]);
+				}
+				AssignTransform(building, buildings, objTransform);
+				currentObjects[building] = trans;
 			}
 		}
 
@@ -491,7 +509,7 @@ namespace GameScripts
 			while (Application.isPlaying)
 			{				
 				for (int i = 0; i < 5; i++)
-				{					
+				{	 
 					switch (i)
 					{
 						case 0:

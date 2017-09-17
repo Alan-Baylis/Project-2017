@@ -7,7 +7,7 @@ using UnityEngine.SceneManagement;
 public class SceneBuilder : EditorWindow
 {
 
-	public static int PlanetNum = 5;
+	public static int PlanetNum = 10;
 	private static GameObject sun;
 	private static GameObject menu;
 	private static GameObject[] planets;
